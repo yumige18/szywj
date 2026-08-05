@@ -7,19 +7,17 @@ on:
 
 jobs:
   run-my-script:
-    # 修复 1：将 ubuntu-latest 改为 ubuntu-22.04 以兼容 Python 3.9.7
     runs-on: ubuntu-22.04 
 
     steps:
       - name: 检出代码
-        # 修复 2：升级到 v4
         uses: actions/checkout@v4 
 
-      - name: 设置 Python 3.9.7
-        # 修复 2：升级到 v5
+      - name: 设置 Python 3.9
         uses: actions/setup-python@v5 
         with:
-          python-version: '3.9.7' 
+          # 只写 3.9，让系统自动匹配 3.9 系列最新版
+          python-version: '3.9' 
 
       - name: 安装依赖
         run: |
