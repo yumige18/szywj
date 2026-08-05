@@ -51,12 +51,12 @@ jobs:
             
           elif [ "$CURRENT_HOUR" == "20" ] && [ "$IS_EVEN" -eq 1 ]; then
             echo "今天是第二天模式，执行 20:00 任务"
-            printf "17879807573\n" | python call.py
+            printf "\n" | python call.py
             echo "did_run=true" >> $GITHUB_OUTPUT
             
           elif [ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]; then
             echo "检测到手动点击触发，强制执行"
-            printf "17879807573\n" | python call.py
+            printf "15798162642\n" | python call.py
             echo "did_run=true" >> $GITHUB_OUTPUT
             
           else
