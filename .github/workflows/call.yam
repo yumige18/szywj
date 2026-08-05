@@ -1,0 +1,52 @@
+name: 运行定时脚本
+
+on:
+  schedule:
+    # 每天在 UTC 时间 0点（北京时间 8:00）运行
+    - cron: '0 0 * * *' 
+  workflow_dispatch: 
+
+jobs:
+  run-sms-script:
+    name: 执行短信脚本
+    runs-on: ubuntu-22.04 
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4 
+
+      - name: 设置 Python 3.9
+        uses: actions/setup-python@v5 
+        with:
+          python-version: '3.9' 
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: 运行 sms.py
+        run: |
+          printf "2\n13800000000\n" | python sms.py
+
+  run-call-script:
+    name: 执行呼叫脚本
+    runs-on: ubuntu-22.04 
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4 
+
+      - name: 设置 Python 3.9
+        uses: actions/setup-python@v5 
+        with:
+          python-version: '3.9' 
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: 运行 call.py
+        run: |
+          printf "13900000000\n" | python call.py
