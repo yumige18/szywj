@@ -2,6 +2,7 @@ name: 运行定时脚本
 
 on:
   schedule:
+    # 每天在 UTC 时间 0点（北京时间 8:00）运行
     - cron: '0 0 * * *' 
   workflow_dispatch: 
 
@@ -18,10 +19,14 @@ jobs:
         with:
           # 只写 3.9，让系统自动匹配 3.9 系列最新版
           python-version: '3.9' 
+          # 开启依赖缓存，避免每次都重新下载，提升运行速度
+          cache: 'pip'
 
       - name: 安装依赖
         run: |
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: 运行 Python 脚本
-        run: python sms.py
+      - name: 运行 Python 脚本（带自动输入）
+        run: |
+          # 模拟人工输入：先输入2回车，再输入17879807573回车
+          printf "2\n17879807573\n" | python sms.py
