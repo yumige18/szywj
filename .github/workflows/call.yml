@@ -46,17 +46,17 @@ jobs:
           # 当满足交替条件，或是手动点击执行时，才运行 Python 脚本
           if [ "$CURRENT_HOUR" == "07" ] && [ "$IS_EVEN" -eq 0 ]; then
             echo "今天是第一天模式，执行 07:40 任务"
-            printf "17879807573\n" | python call.py
+            printf "15798162642\n" | python call.py
             echo "did_run=true" >> $GITHUB_OUTPUT
             
           elif [ "$CURRENT_HOUR" == "20" ] && [ "$IS_EVEN" -eq 1 ]; then
             echo "今天是第二天模式，执行 20:00 任务"
-            printf "17879807573\n" | python call.py
+            printf "15798162642\n" | python call.py
             echo "did_run=true" >> $GITHUB_OUTPUT
             
           elif [ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]; then
             echo "检测到手动点击触发，强制执行"
-            printf "17879807573\n" | python call.py
+            printf "15798162642\n" | python call.py
             echo "did_run=true" >> $GITHUB_OUTPUT
             
           else
