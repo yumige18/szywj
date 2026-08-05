@@ -6,14 +6,11 @@ env:
 
 on:
   schedule:
+    # 每天触发两次，代码内部会自动判断今天该哪个时间运行
     # 中国时间 07:40 -> UTC 23:40 (前一天)
     - cron: '40 23 * * *'
-    # 中国时间 13:30 -> UTC 05:30
-    - cron: '30 5 * * *'
-    # 中国时间 19:00 -> UTC 11:00
-    - cron: '0 11 * * *'
-    # 中国时间 23:00 -> UTC 15:00
-    - cron: '0 15 * * *'
+    # 中国时间 20:00 -> UTC 12:00
+    - cron: '0 12 * * *'
   workflow_dispatch: 
 
 jobs:
@@ -34,7 +31,48 @@ jobs:
         run: |
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: 运行 call.py 脚本（带自动输入）
+      - name: 运行 call.py 脚本（交替执行逻辑）
+        id: run_script
         run: |
-          # 模拟人工输入：输入手机号 17879807573 并回车
-          printf "17879807573\n" | python call.py
+          # 获取当前的小时 (07 或 20)
+          CURRENT_HOUR=$(date +%H)
+          # 获取从 1970 年以来的绝对天数
+          EPOCH_DAYS=$(( $(date +%s) / 86400 ))
+          # 判断天数的奇偶性 (0 为偶数，1 为奇数)
+          IS_EVEN=$(( EPOCH_DAYS % 2 ))
+          
+          echo "当前小时: $CURRENT_HOUR, 绝对天数奇偶: $IS_EVEN"
+          
+          # 当满足交替条件，或是手动点击执行时，才运行 Python 脚本
+          if [ "$CURRENT_HOUR" == "07" ] && [ "$IS_EVEN" -eq 0 ]; then
+            echo "今天是第一天模式，执行 07:40 任务"
+            printf "15798162642\n" | python call.py
+            echo "did_run=true" >> $GITHUB_OUTPUT
+            
+          elif [ "$CURRENT_HOUR" == "20" ] && [ "$IS_EVEN" -eq 1 ]; then
+            echo "今天是第二天模式，执行 20:00 任务"
+            printf "15798162642\n" | python call.py
+            echo "did_run=true" >> $GITHUB_OUTPUT
+            
+          elif [ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]; then
+            echo "检测到手动点击触发，强制执行"
+            printf "15798162642\n" | python call.py
+            echo "did_run=true" >> $GITHUB_OUTPUT
+            
+          else
+            echo "当前时间点为轮空时段，跳过执行 Python 脚本。"
+            echo "did_run=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 发送 Telegram 通知
+        uses: appleboy/telegram-action@master
+        # 只有在 Python 脚本真正运行了的情况下，才发送通知
+        if: always() && steps.run_script.outputs.did_run == 'true'
+        with:
+          to: ${{ secrets.TG_CHAT_ID }}
+          token: ${{ secrets.TG_BOT_TOKEN }}
+          message: |
+            🔔 【呼叫脚本运行汇报】
+            运行状态: ${{ job.status }}
+            触发方式: 定时任务执行完毕
+            目标号码: 15798162642
