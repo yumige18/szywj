@@ -1,5 +1,9 @@
 name: 运行定时脚本
 
+# 👇 1. 这里是设置北京时间（全局生效）
+env:
+  TZ: Asia/Shanghai
+
 on:
   schedule:
     # 每天在 UTC 时间 0点（北京时间 8:00）运行
@@ -13,6 +17,14 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v4 
+
+      # 👇 2. 这里是新增的查看时间的步骤
+      - name: 查看当前系统时间和时区
+        run: |
+          echo "当前的系统时间是："
+          date
+          echo "当前的时区配置是："
+          cat /etc/timezone
 
       - name: 设置 Python 3.9
         uses: actions/setup-python@v5 
@@ -29,4 +41,4 @@ jobs:
       - name: 运行 Python 脚本（带自动输入）
         run: |
           # 模拟人工输入：先输入2回车，再输入17879807573回车
-          printf "2\n15798162642\n" | python sms.py
+          printf "2\n17879807573\n" | python sms.py
