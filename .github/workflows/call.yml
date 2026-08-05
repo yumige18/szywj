@@ -36,5 +36,5 @@ jobs:
 
       - name: 运行 call.py 脚本（带自动输入）
         run: |
-          # 模拟人工输入：输入手机号 15798162642 并回车
-          printf "15798162642\n" | python call.py
+          # 模拟人工输入：输入手机号 17879807573 并回车
+          printf "17879807573\n" | python call.py
