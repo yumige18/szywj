@@ -5,13 +5,13 @@ env:
   TZ: Asia/Shanghai
 
 on:
-  schedule:
-    # 每天触发两次，代码内部会自动判断今天该哪个时间运行
-    # 中国时间 07:40 -> UTC 23:40 (前一天)
-    - cron: '40 23 * * *'
-    # 中国时间 20:00 -> UTC 12:00
-    - cron: '0 12 * * *'
-  workflow_dispatch: 
+  # 只保留手动/Webhook触发，并要求传入号码
+  workflow_dispatch:
+    inputs:
+      phone_number:
+        description: '请输入呼叫的目标号码'
+        required: true
+        default: '17879807573'
 
 jobs:
   run-call-script:
@@ -31,42 +31,21 @@ jobs:
         run: |
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: 运行 call.py 脚本（交替执行逻辑）
+      - name: 运行 call.py 脚本
         id: run_script
         run: |
-          # 获取当前的小时 (07 或 20)
-          CURRENT_HOUR=$(date +%H)
-          # 获取从 1970 年以来的绝对天数
-          EPOCH_DAYS=$(( $(date +%s) / 86400 ))
-          # 判断天数的奇偶性 (0 为偶数，1 为奇数)
-          IS_EVEN=$(( EPOCH_DAYS % 2 ))
+          TARGET_NUMBER="${{ github.event.inputs.phone_number }}"
+          echo "接收到 Cloudflare / 手动传入的号码: $TARGET_NUMBER"
           
-          echo "当前小时: $CURRENT_HOUR, 绝对天数奇偶: $IS_EVEN"
+          # 将传入的号码交互输入给 Python 脚本
+          printf "%s\n" "$TARGET_NUMBER" | python call.py
           
-          # 当满足交替条件，或是手动点击执行时，才运行 Python 脚本
-          if [ "$CURRENT_HOUR" == "07" ] && [ "$IS_EVEN" -eq 0 ]; then
-            echo "今天是第一天模式，执行 07:40 任务"
-            printf "17879807573\n" | python call.py
-            echo "did_run=true" >> $GITHUB_OUTPUT
-            
-          elif [ "$CURRENT_HOUR" == "20" ] && [ "$IS_EVEN" -eq 1 ]; then
-            echo "今天是第二天模式，执行 20:00 任务"
-            printf "\n" | python call.py
-            echo "did_run=true" >> $GITHUB_OUTPUT
-            
-          elif [ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]; then
-            echo "检测到手动点击触发，强制执行"
-            printf "15798162642\n" | python call.py
-            echo "did_run=true" >> $GITHUB_OUTPUT
-            
-          else
-            echo "当前时间点为轮空时段，跳过执行 Python 脚本。"
-            echo "did_run=false" >> $GITHUB_OUTPUT
-          fi
+          # 标记运行成功，传递给下一步
+          echo "did_run=true" >> $GITHUB_OUTPUT
 
       - name: 发送 Telegram 通知
         uses: appleboy/telegram-action@master
-        # 只有在 Python 脚本真正运行了的情况下，才发送通知
+        # 只要走到这一步就发送通知，并显示动态号码
         if: always() && steps.run_script.outputs.did_run == 'true'
         with:
           to: ${{ secrets.TG_CHAT_ID }}
@@ -74,5 +53,5 @@ jobs:
           message: |
             🔔 【呼叫脚本运行汇报】
             运行状态: ${{ job.status }}
-            触发方式: 定时任务执行完毕
-            目标号码: 17879807573
+            触发方式: Cloudflare Webhook / 手动执行
+            目标号码: ${{ github.event.inputs.phone_number }}
