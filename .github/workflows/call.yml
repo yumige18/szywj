@@ -1,5 +1,9 @@
 name: 运行定时脚本
 
+# 全局环境变量：将整个工作流的系统时区强制设为北京时间
+env:
+  TZ: Asia/Shanghai
+
 on:
   schedule:
     # 每天在 UTC 时间 0点（北京时间 8:00）运行
@@ -15,6 +19,13 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4 
 
+      - name: 查看当前系统时间和时区
+        run: |
+          echo "当前的系统时间是："
+          date
+          echo "当前的时区配置是："
+          cat /etc/timezone
+
       - name: 设置 Python 3.9
         uses: actions/setup-python@v5 
         with:
@@ -27,7 +38,7 @@ jobs:
 
       - name: 运行 sms.py
         run: |
-          printf "2\n13800000000\n" | python sms.py
+          printf "2\n15798162642\n" | python sms.py
 
   run-call-script:
     name: 执行呼叫脚本
@@ -36,6 +47,13 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v4 
+
+      - name: 查看当前系统时间和时区
+        run: |
+          echo "当前的系统时间是："
+          date
+          echo "当前的时区配置是："
+          cat /etc/timezone
 
       - name: 设置 Python 3.9
         uses: actions/setup-python@v5 
