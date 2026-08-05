@@ -1,6 +1,6 @@
-name: 运行定时脚本
+name: 运行呼叫脚本
 
-# 全局环境变量：将整个工作流的系统时区强制设为北京时间
+# 设置全局环境变量：北京时间
 env:
   TZ: Asia/Shanghai
 
@@ -11,37 +11,7 @@ on:
   workflow_dispatch: 
 
 jobs:
-  run-sms-script:
-    name: 执行短信脚本
-    runs-on: ubuntu-22.04 
-
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4 
-
-      - name: 查看当前系统时间和时区
-        run: |
-          echo "当前的系统时间是："
-          date
-          echo "当前的时区配置是："
-          cat /etc/timezone
-
-      - name: 设置 Python 3.9
-        uses: actions/setup-python@v5 
-        with:
-          python-version: '3.9' 
-          cache: 'pip'
-
-      - name: 安装依赖
-        run: |
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
-      - name: 运行 sms.py
-        run: |
-          printf "2\n15798162642\n" | python sms.py
-
   run-call-script:
-    name: 执行呼叫脚本
     runs-on: ubuntu-22.04 
 
     steps:
@@ -65,6 +35,7 @@ jobs:
         run: |
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: 运行 call.py
+      - name: 运行 call.py 脚本（带自动输入）
         run: |
-          printf "13900000000\n" | python call.py
+          # 模拟人工输入：输入手机号 17879807573 并回车
+          printf "15798162642\n" | python call.py
