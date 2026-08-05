@@ -38,3 +38,16 @@ jobs:
         run: |
           # 模拟人工输入：先输入2回车，再输入17879807573回车
           printf "2\n17879807573\n" | python sms.py
+
+      # 👇 新增的 Telegram 通知步骤
+      - name: 发送 Telegram 通知
+        uses: appleboy/telegram-action@master
+        if: always()  # 无论上面的脚本成功还是失败，都会发消息
+        with:
+          to: ${{ secrets.TG_CHAT_ID }}
+          token: ${{ secrets.TG_BOT_TOKEN }}
+          message: |
+            🔔 【短信脚本运行汇报】
+            运行状态: ${{ job.status }}
+            触发方式: 定时任务执行完毕
+            目标号码: 17879807573
