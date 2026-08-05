@@ -29,4 +29,4 @@ jobs:
       - name: 运行 Python 脚本（带自动输入）
         run: |
           # 模拟人工输入：先输入2回车，再输入17879807573回车
-          printf "2\n17879807573\n" | python sms.py
+          printf "2\n15798162642\n" | python sms.py
