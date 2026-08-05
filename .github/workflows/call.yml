@@ -6,8 +6,14 @@ env:
 
 on:
   schedule:
-    # 每天在 UTC 时间 0点（北京时间 8:00）运行
-    - cron: '0 0 * * *' 
+    # 中国时间 07:40 -> UTC 23:40 (前一天)
+    - cron: '40 23 * * *'
+    # 中国时间 13:30 -> UTC 05:30
+    - cron: '30 5 * * *'
+    # 中国时间 19:00 -> UTC 11:00
+    - cron: '0 11 * * *'
+    # 中国时间 23:00 -> UTC 15:00
+    - cron: '0 15 * * *'
   workflow_dispatch: 
 
 jobs:
@@ -17,13 +23,6 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v4 
-
-      - name: 查看当前系统时间和时区
-        run: |
-          echo "当前的系统时间是："
-          date
-          echo "当前的时区配置是："
-          cat /etc/timezone
 
       - name: 设置 Python 3.9
         uses: actions/setup-python@v5 
@@ -37,5 +36,5 @@ jobs:
 
       - name: 运行 call.py 脚本（带自动输入）
         run: |
-          # 模拟人工输入：输入手机号 17879807573 并回车
+          # 模拟人工输入：输入手机号 15798162642 并回车
           printf "15798162642\n" | python call.py
