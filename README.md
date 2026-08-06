@@ -124,7 +124,7 @@ Cloudflare Worker 需要此令牌来跨端触发你的 GitHub Actions。
 
 ---
 
-## 七、 第六步：设置 Cloudflare Cron 定时触发器 ⏰
+## 七、 第六步：设置 Cloudflare Cron 定时触发器（若要自定义别的时间可找AI修改worker代码） ⏰
 
 为实现脚本的自动化按需运转，需设置定时器（时间已在代码中针对北京时间做了转换适配）。
 
