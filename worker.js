@@ -116,7 +116,7 @@ export default {
 // 通用函数 (向 GitHub 发送指令)
 // ==========================================
 async function triggerGitHub(env, workflow, taskName, inputs) {
-  const githubUrl = `https://api.github.com/repos/yumige18/szywj/actions/workflows/${workflow}/dispatches`;
+  const githubUrl = `https://api.github.com/repos/yumige18/SZ-YWJ-BEYOND/actions/workflows/${workflow}/dispatches`;
   try {
     const response = await fetch(githubUrl, {
       method: 'POST',
