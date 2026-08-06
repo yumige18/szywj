@@ -1,10 +1,78 @@
-szywj 项目零基础部署教程：从 GitHub 到 Cloudflare 与 Telegram 机器人本教程将引导你完成项目的完整部署，包含：Telegram 机器人创建、GitHub 仓库 Fork 与密钥设置、Cloudflare Worker 代码修改与部署、Telegram 命令绑定及 Cron 定时任务配置。  一、 准备工作在开始之前，请确保你已注册并登录以下账号：GitHub 账号：用于托管脚本与运行 GitHub Actions 自动化工作流。  Cloudflare 账号：用于部署 Worker 托管中控服务与定时调度。  Telegram 账号：用于通过机器人发送控制指令和接收执行汇报。  二、 步骤一：配置 Telegram 机器人我们需要创建一个 Telegram 机器人，并获取 Bot Token 和你的 Chat ID。  1. 获取 Telegram Bot Token在 Telegram 中搜索 @BotFather 并打开对话。发送指令 /newbot。根据提示依次输入：机器人名称（如：MySmsBot）。机器人用户名（必须以 bot 结尾，如：mysms_control_bot）。创建成功后，BotFather 会返回一串 API Token（格式类似于 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ）。请保存好此 Token。  2. 获取你的 Chat ID在 Telegram 中搜索 @userinfobot 并点击 Start。机器人会自动回复你的个人信息，其中包含你的 Id（一串数字，如：12345678）。请保存好此 Chat ID。  三、 步骤二：GitHub 仓库配置1. Fork 目标仓库打开项目仓库页面：yumige18/szywj。点击页面右上角的 Fork 按钮，将项目复制到你自己的 GitHub 账号下。2. 配置 GitHub Repository Secrets进入你 Fork 后的新仓库页面。点击上方的 Settings（设置）标签页。在左侧菜单栏依次选择 Secrets and variables -> Actions。  点击 New repository secret 按钮，分别添加以下两个密钥：密钥名称（Name）密钥值（Value）作用TG_BOT_TOKEN步骤一获取的 API Token用于 GitHub Actions 向 TG 发送消息  TG_CHAT_ID步骤一获取的 Chat ID指定接收消息的 TG 会话 ID  3. 创建 GitHub Personal Access Token (PAT)Cloudflare Worker 需要通过 API 触发 GitHub Actions 工作流，因此需要生成一个具有权限的 Token。  点击 GitHub 右上角头像 -> Settings。滑到最底部，点击左侧的 Developer settings。依次选择 Personal access tokens -> Tokens (classic)。点击 Generate new token -> Generate new token (classic)。填写 Note（如：CF Worker Trigger）。Expiration 设置为 No expiration（永不过期）或按需设置。勾选权限：必须勾选 workflow（更新 GitHub Action 工作流权限）。点击底部 Generate token，页面会生成一串 ghp_ 开头的密钥。复制并保存好，该密钥只显示一次。四、 步骤三：修改 Cloudflare Worker 代码适配个人版本在部署 Cloudflare Worker 之前，需要根据你自己的 GitHub 账号信息修改源码。  关键代码修改说明你需要修改 worker.js 中的以下内容：  修改 GitHub 仓库路径：
-在 triggerGitHub 函数中，找到如下代码：  JavaScriptconst githubUrl = `https://api.github.com/repos/yumige18/szywj/actions/workflows/${workflow}/dispatches`;
-将 yumige18/szywj 修改为你自己的 GitHub用户名/仓库名。  示例：如果你的 GitHub 用户名是 zhangsan，仓库名是 szywj，则修改为：JavaScriptconst githubUrl = `https://api.github.com/repos/zhangsan/szywj/actions/workflows/${workflow}/dispatches`;
-修改默认目标手机号码（可选）：
-在 scheduled 导出函数中，找到如下代码：  JavaScriptconst DEFAULT_NUMBER = '17879807573';
-将其中的号码修改为你需要默认触发的主目标号码。  五、 步骤四：部署 Cloudflare Worker1. 创建 Worker登录 Cloudflare 控制台。在左侧菜单栏点击 Workers 和 Pages -> 概述。点击 创建应用程序（Create Application） -> 创建 Worker。设置一个 Worker 名称（如 szywj-worker），点击 部署。2. 写入修改后的代码点击刚创建的 Worker 页面右上角的 编辑代码（Edit code）。将左侧默认的代码全部清空。粘贴已根据步骤三修改好的完整 Worker 脚本代码。  点击右上角的 保存并部署（Save and deploy）。3. 配置 Cloudflare Worker 环境变量返回该 Worker 的管理主页。点击 设置（Settings）标签页 -> 选择 变量（Variables）。在 环境变量（Environment Variables）处点击 添加（Add），依次添加以下三个变量，添加后点击保存并部署：  变量名称（Name）变量类型变量值（Value）说明GITHUB_TOKEN机密 (Secret)步骤二生成的 ghp_... 令牌用于调用 GitHub API  TG_BOT_TOKEN机密 (Secret)步骤一获取的 Telegram Bot Token用于 Worker 发送 Telegram 通知  TG_CHAT_ID文本 (Text)步骤一获取的 Telegram Chat ID接收通知的个人/群组 ID  六、 步骤五：绑定 Telegram 机器人 Webhook为了能够通过 Telegram 机器人直接发送 /sms 手机号 或 /call 手机号 指令触发任务，需要将 Worker 的 URL 绑定到机器人。  获取你的 Cloudflare Worker 域名 URL：
-在 Worker 的概述页面，找到 域名 区域（类似于 [https://szywj-worker.xxxx.workers.dev](https://szywj-worker.xxxx.workers.dev)）。  打开你的浏览器，在地址栏输入以下链接并按下回车（请替换其中的括号部分）：Plaintexthttps://api.telegram.org/bot<你的TG_BOT_TOKEN>/setWebhook?url=<你的Cloudflare_Worker_URL>
-示例：[https://api.telegram.org/bot123456789:ABCdef/setWebhook?url=https://szywj-worker.user.workers.dev](https://api.telegram.org/bot123456789:ABCdef/setWebhook?url=https://szywj-worker.user.workers.dev)若浏览器返回 {"ok":true,"result":true,"description":"Webhook was set"}，则表示 Telegram 命令响应绑定成功。  七、 步骤六：设置 Cloudflare Cron 定时触发器根据 Worker 代码中的逻辑，脚本支持 Cron 表达式进行定时自动巡航触发。  对应时间规则说明Worker 中预设的匹配时间规则（均为 UTC 时间，转换后对应北京时间）：  Cron 表达式 (UTC)对应北京时间执行任务说明0 4,10,16,22 * * *每天 00:00, 06:00, 12:00, 18:00自动轮播_短信自动触发 sms.yml  40 23 * * *北京时间 07:40自动轮播_呼叫(早)周期第1天(周期0)触发 call.yml  40 5 * * *北京时间 13:40自动轮播_呼叫(中)周期第2天(周期1)触发 call.yml  40 11 * * *北京时间 19:40自动轮播_呼叫(晚)周期第3天(周期2)触发 call.yml  添加 Cron Trigger 步骤进入 Cloudflare Worker 管理界面。点击 设置（Settings） -> 触发器（Triggers）。滚动到 Cron 触发器（Cron Triggers）部分，点击 添加 Cron 触发器（Add Cron Trigger）。依次将上方表格中的 4 条 Cron 表达式输入并保存：  0 4,10,16,22 * * *  40 23 * * *  40 5 * * *  40 11 * * *  八、 测试与验证完成上述配置后，可以通过以下方式验证系统是否正常工作：Telegram 机器人手动指令测试：
-在 Telegram 中打开你的 Bot 对话框，发送指令：  /sms 17879807573：检查机器人是否回复 ✅ 收到指令：已下发短信任务。  /call 17879807573：检查机器人是否回复 ✅ 收到指令：已下发呼叫任务。  GitHub Actions 执行状态查看：
-进入你的 GitHub 仓库 -> 点击 Actions 标签页，查看是否有新触发的 运行短信脚本 或 运行呼叫脚本 工作流在正常运行。执行完毕后，Telegram 会接收到来自 GitHub Actions 的结果汇报
+# SZYWJ 自动化任务部署指南 🚀
+
+本项目通过结合 **GitHub Actions**、**Cloudflare Workers** 和 **Telegram Bot**，实现了一个完全自动化且支持手动指令触发的短信与呼叫任务调度系统。
+
+本指南专为零基础用户编写，跟着步骤走，即可轻松完成全套部署！
+
+---
+
+## 📋 目录
+1. [准备工作](#一-准备工作)
+2. [第一步：配置 Telegram 机器人](#二-第一步配置-telegram-机器人)
+3. [第二步：GitHub 仓库配置](#三-第二步github-仓库配置)
+4. [第三步：修改 Cloudflare 代码适配个人版本](#四-第三步修改-cloudflare-代码适配个人版本)
+5. [第四步：部署 Cloudflare Worker](#五-第四步部署-cloudflare-worker)
+6. [第五步：绑定 Telegram 机器人](#六-第五步绑定-telegram-机器人-webhook)
+7. [第六步：设置定时触发器 (Cron)](#七-第六步设置-cloudflare-cron-定时触发器)
+8. [使用与测试](#八-测试与验证)
+
+---
+
+## 一、 准备工作 🛠️
+
+在开始之前，请确保你已注册并登录以下账号：
+- [x] **GitHub 账号**：用于托管脚本与运行自动化工作流。
+- [x] **Cloudflare 账号**：用于部署 Worker，托管中控服务与定时调度。
+- [x] **Telegram 账号**：用于通过机器人发送控制指令和接收执行汇报。
+
+---
+
+## 二、 第一步：配置 Telegram 机器人 🤖
+
+我们需要创建一个 Telegram 机器人，并获取 **Bot Token** 和你的 **Chat ID**。
+
+### 1. 获取 Bot Token
+1. 在 Telegram 中搜索 `@BotFather` 并打开对话。
+2. 发送指令 `/newbot`。
+3. 根据提示依次输入**机器人名称**和**机器人用户名**（必须以 `bot` 结尾）。
+4. 创建成功后，复制并保存返回的 **API Token**（格式类似 `123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ`）。
+
+### 2. 获取 Chat ID
+1. 在 Telegram 中搜索 `@userinfobot` 并点击 `Start`。
+2. 机器人会自动回复你的个人信息，复制并保存其中的 `Id`（一串纯数字）。
+
+---
+
+## 三、 第二步：GitHub 仓库配置 🐙
+
+### 1. Fork 目标仓库
+1. 点击页面右上角的 **Fork** 按钮，将本项目复制到你自己的 GitHub 账号下。
+
+### 2. 配置 Repository Secrets
+1. 进入你 Fork 后的新仓库页面，点击上方的 **Settings**（设置）。
+2. 在左侧菜单栏依次选择 **Secrets and variables** -> **Actions**。
+3. 点击 **New repository secret**，添加以下两个密钥：
+
+| 密钥名称（Name） | 密钥值（Value） | 作用 |
+| :--- | :--- | :--- |
+| `TG_BOT_TOKEN` | 填入刚才获取的 API Token | 用于 GitHub Actions 向 TG 发送消息 |
+| `TG_CHAT_ID` | 填入刚才获取的 Chat ID | 指定接收消息的 TG 账号或群组 |
+
+### 3. 创建 Personal Access Token (PAT)
+Cloudflare Worker 需要此令牌来跨端触发你的 GitHub Actions。
+1. 点击 GitHub 右上角头像 -> **Settings** -> 左侧最底部 **Developer settings**。
+2. 依次选择 **Personal access tokens** -> **Tokens (classic)** -> **Generate new token (classic)**。
+3. 填写 **Note**（如：`CF Worker Trigger`），**Expiration** 建议设置为 `No expiration`（永不过期）。
+4. **⚠️ 关键步骤：** 在权限列表中，勾选 **`workflow`** 权限。
+5. 点击生成，**复制并保存好这串以 `ghp_` 开头的密钥**（离开页面后将无法再次查看）。
+
+---
+
+## 四、 第三步：修改 Cloudflare 代码适配个人版本 ✏️
+
+在部署前，你需要修改 `worker.js` 文件，让其指向你自己的 GitHub 仓库。
+
+1. 打开你仓库中的 `worker.js` 文件。
+2. 找到最下方的 `triggerGitHub` 函数中的这段代码：
+   ```javascript
+   const githubUrl = `[https://api.github.com/repos/yumige18/szywj/actions/workflows/$](https://api.github.com/repos/yumige18/szywj/actions/workflows/$){workflow}/dispatches`;
