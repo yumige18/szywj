@@ -1,4 +1,4 @@
-# SZ YWJ 自动化任务部署指南 🚀
+# SZ-YWJ-BEYOND 自动化任务部署指南 🚀
 
 本项目通过结合 **GitHub Actions**、**Cloudflare Workers** 和 **Telegram Bot**，实现了一个完全自动化且支持手动指令触发的短信与呼叫任务调度系统。
 
@@ -75,7 +75,7 @@ Cloudflare Worker 需要此令牌来跨端触发你的 GitHub Actions。
 1. 打开你仓库中的 `worker.js` 文件。
 2. 找到最下方的 `triggerGitHub` 函数中的这段代码：
    ```javascript
-   const githubUrl = `https://api.github.com/repos/yumige18/szywj/actions/workflows/${workflow}/dispatches`;
+   const githubUrl = `https://api.github.com/repos/yumige18/SZ-YWJ-BEYOND/actions/workflows/${workflow}/dispatches`;
    ```
 3. **将 `yumige18/szywj` 修改为你自己的 `GitHub用户名/仓库名`。**
    > 例如：你的 GitHub 用户名是 `zhangsan`，则改为 `zhangsan/szywj`。
