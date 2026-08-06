@@ -63,7 +63,7 @@ Cloudflare Worker 需要此令牌来跨端触发你的 GitHub Actions。
 1. 点击 GitHub 右上角头像 -> **Settings** -> 左侧最底部 **Developer settings**。
 2. 依次选择 **Personal access tokens** -> **Tokens (classic)** -> **Generate new token (classic)**。
 3. 填写 **Note**（如：`CF Worker Trigger`），**Expiration** 建议设置为 `No expiration`（永不过期）。
-4. **⚠️ 关键步骤：** 在权限列表中，勾选 **`workflow`** 权限。
+4. **⚠️ 关键步骤：** 在权限列表中，勾选 **`repo`** 和 **`workflow`** 权限。
 5. 点击生成，**复制并保存好这串以 `ghp_` 开头的密钥**（离开页面后将无法再次查看）。
 
 ---
