@@ -1,4 +1,4 @@
-# SZYWJ 自动化任务部署指南 🚀
+# SZ YWJ 自动化任务部署指南 🚀
 
 本项目通过结合 **GitHub Actions**、**Cloudflare Workers** 和 **Telegram Bot**，实现了一个完全自动化且支持手动指令触发的短信与呼叫任务调度系统。
 
