@@ -3,9 +3,9 @@ name: 运行短信脚本
 # 保持设置北京时间（全局生效），让 Python 脚本内部获取的时间为中国时间
 env:
   TZ: Asia/Shanghai
+  PROXY_URL: ${{ secrets.PROXY_URL }}
 
 on:
-  # 彻底去掉 cron 定时，改为纯手动 / Webhook 触发，并定义需要接收的两个参数
   workflow_dispatch:
     inputs:
       option_num:
@@ -22,6 +22,9 @@ jobs:
     runs-on: ubuntu-22.04 
 
     steps:
+      - name: 记录开始时间
+        run: echo "START_TIME=$(date +%s)" >> $GITHUB_ENV
+
       - name: 检出代码
         uses: actions/checkout@v4 
 
@@ -35,24 +38,64 @@ jobs:
         run: |
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
+      - name: 连通性测试 (HTTPS代理验证)
+        id: proxy_test
+        run: |
+          if [ -z "${PROXY_URL}" ]; then
+            echo "PROXY_STATUS=⚠️ 未配置代理，将直连运行" >> $GITHUB_ENV
+            echo "USE_PROXY=false" >> $GITHUB_ENV
+          else
+            echo "开始测试 HTTPS 代理连通性: ${PROXY_URL}"
+            LATENCY=$(curl -x "${PROXY_URL}" -k --proxy-insecure -I -m 10 -w "%{time_total}" -s -o /dev/null https://www.baidu.com || echo "failed")
+            
+            if [ "$LATENCY" = "failed" ]; then
+              echo "❌ 代理连接失败或超时！将降级为直连模式。"
+              echo "PROXY_STATUS=❌ 代理失效，已切换为直连运行" >> $GITHUB_ENV
+              echo "USE_PROXY=false" >> $GITHUB_ENV
+            else
+              echo "✅ 代理连接成功，延迟: ${LATENCY}s"
+              echo "PROXY_STATUS=✅ 代理正常，延迟: ${LATENCY}s" >> $GITHUB_ENV
+              echo "USE_PROXY=true" >> $GITHUB_ENV
+            fi
+          fi
+
       - name: 运行 Python 脚本（带自动输入）
         run: |
           OPTION="${{ github.event.inputs.option_num }}"
           TARGET_NUMBER="${{ github.event.inputs.phone_number }}"
           echo "接收到来自 Cloudflare 的参数 - 选项: $OPTION, 号码: $TARGET_NUMBER"
           
-          # 模拟人工输入：按顺序把接收到的变量喂给 Python
+          if [ "$USE_PROXY" = "true" ]; then
+            export http_proxy="${PROXY_URL}"
+            export https_proxy="${PROXY_URL}"
+            export PYTHONHTTPSVERIFY=0
+            echo "配置完毕：流量将经过代理，并已尝试在环境层面禁用 HTTPS 证书校验。"
+          else
+            echo "配置完毕：将直接连接目标服务器。"
+          fi
+          
           printf "%s\n%s\n" "$OPTION" "$TARGET_NUMBER" | python sms.py
+
+      - name: 计算任务总耗时
+        if: always() # 无论前面是否报错，这段都会执行
+        run: |
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+          MINUTES=$((DURATION / 60))
+          SECONDS=$((DURATION % 60))
+          echo "TASK_DURATION=${MINUTES}分${SECONDS}秒" >> $GITHUB_ENV
 
       - name: 发送 Telegram 通知
         uses: appleboy/telegram-action@master
-        if: always()  # 无论上面的脚本成功还是失败，都会发消息
+        if: always()
         with:
           to: ${{ secrets.TG_CHAT_ID }}
           token: ${{ secrets.TG_BOT_TOKEN }}
           message: |
             🔔 【短信脚本运行汇报】
             运行状态: ${{ job.status }}
-            触发方式: Cloudflare Webhook / 手动执行
+            触发方式: Webhook / 手动执行
             执行选项: ${{ github.event.inputs.option_num }}
             目标号码: ${{ github.event.inputs.phone_number }}
+            代理状态: ${{ env.PROXY_STATUS }}
+            任务耗时: ${{ env.TASK_DURATION }}
