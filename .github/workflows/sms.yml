@@ -1,0 +1,71 @@
+name: 运行短信脚本
+
+# 保持设置北京时间（全局生效），让 Python 脚本内部获取的时间为中国时间
+env:
+  TZ: Asia/Shanghai
+
+on:
+  # 彻底去掉 cron 定时，改为纯手动 / Webhook 触发，并定义需要接收的两个参数
+  workflow_dispatch:
+    inputs:
+      option_num:
+        description: '请输入选项指令 (例如: 2)'
+        required: true
+        default: '2'
+      phone_number:
+        description: '请输入目标号码'
+        required: true
+        default: '17879807573'
+
+jobs:
+  run-my-script:
+    runs-on: ubuntu-22.04 
+
+    steps:
+      - name: 记录开始时间
+        run: echo "START_TIME=$(date +%s)" >> $GITHUB_ENV
+
+      - name: 检出代码
+        uses: actions/checkout@v4 
+
+      - name: 设置 Python 3.9
+        uses: actions/setup-python@v5 
+        with:
+          python-version: '3.9' 
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: 运行 Python 脚本（带自动输入）
+        run: |
+          OPTION="${{ github.event.inputs.option_num }}"
+          TARGET_NUMBER="${{ github.event.inputs.phone_number }}"
+          echo "接收到来自 Cloudflare 的参数 - 选项: $OPTION, 号码: $TARGET_NUMBER"
+          
+          # 模拟人工输入：按顺序把接收到的变量喂给 Python
+          printf "%s\n%s\n" "$OPTION" "$TARGET_NUMBER" | python sms.py
+
+      - name: 计算任务耗时
+        if: always()
+        run: |
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+          MINS=$((DURATION / 60))
+          SECS=$((DURATION % 60))
+          echo "TASK_DURATION=${MINS}分${SECS}秒" >> $GITHUB_ENV
+
+      - name: 发送 Telegram 通知
+        uses: appleboy/telegram-action@master
+        if: always()  # 无论上面的脚本成功还是失败，都会发消息
+        with:
+          to: ${{ secrets.TG_CHAT_ID }}
+          token: ${{ secrets.TG_BOT_TOKEN }}
+          message: |
+            🔔 【短信脚本运行汇报】
+            运行状态: ${{ job.status }}
+            任务耗时: ${{ env.TASK_DURATION }}
+            触发方式: Cloudflare Webhook / 手动执行
+            执行选项: ${{ github.event.inputs.option_num }}
+            目标号码: ${{ github.event.inputs.phone_number }}
